@@ -7,6 +7,7 @@ use std::ffi::OsStr;
 use std::fs;
 use std::io;
 use std::os::windows::ffi::OsStrExt;
+use std::path::PathBuf;
 use std::process::Command;
 use std::ptr;
 
@@ -47,21 +48,23 @@ pub fn set_rebooted_key(value: i8) -> std::io::Result<()> {
 }
 
 pub fn export_registry_key() -> std::io::Result<()> {
+    let current_path: PathBuf = env::current_dir().expect("failed to get the current directory");
     let local_path_header: &str = "HKEY_LOCAL_MACHINE";
     let user_path_header: &str = "HKEY_CURRENT_USER";
     let registry_headers: [&str; 2] = [local_path_header, user_path_header];
 
     for header in &registry_headers {
         let output_file: String = format!("{}.reg", header.to_lowercase());
+        let full_path = current_path.join(DATA_FOLDER_NAME).join(output_file);
 
-        match fs::File::create(&output_file) {
+        match fs::File::create(&full_path) {
             Ok(_) => {}
             Err(err) => return Err(err),
         }
 
         let status = Command::new("regedit")
             .arg("/e")
-            .arg(&output_file)
+            .arg(&full_path)
             .arg(format!("{}\\{}", header, REGISTRY_STARTUP_PATH))
             .status()
             .expect("failed");

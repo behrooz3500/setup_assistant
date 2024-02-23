@@ -3,6 +3,9 @@ pub const SCRIPT_PATH: &str = "locale.bat";
 pub const REBOOT_REGISTRY_PATH: &str = "SOFTWARE\\AAAHelperCo\\AAAHelperApp";
 pub const REGISTRY_STARTUP_PATH: &str = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
 pub const REGISTRY_RUNONCE_PATH: &str = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce";
+pub const DATA_FOLDER_NAME: &str = "data";
+pub const SETUP_FILE_NAME: &str = "setup.bin";
+pub const SETUP_EXE_NAME: &str = "setup.exe";
 pub const XML_CONTENT: &str = r#"<?xml version="1.0"?>
     <gs:GlobalizationServices xmlns:gs="urn:longhornGlobalizationUnattend">
         <gs:UserList>

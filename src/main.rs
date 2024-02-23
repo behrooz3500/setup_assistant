@@ -8,13 +8,17 @@ use xml_handler::{remove_files, write_xml_file};
 
 // internal: registry_handler
 mod registry_handler;
-use registry_handler::{delete_registry_key, export_registry_key, is_rebooted, schedule_setup_task, set_rebooted_key,};
+use registry_handler::{delete_registry_key, export_registry_key, is_rebooted, schedule_setup_task, set_rebooted_key, message_box};
 
 // std
 use std::process::Command;
 
 
 fn main() {
+    let message: &str = "شروع فرایند نصب نرم افزار معین";
+    let title: &str = "معین";
+    message_box(title, message);
+    
     let mut shutdown_command = Command::new("shutdown");
     shutdown_command.args(["/r", "/t", "60"]);
 

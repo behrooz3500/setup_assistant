@@ -1,14 +1,21 @@
 // internal: constants
-use crate::constants::{REBOOT_REGISTRY_PATH, REGISTRY_RUNONCE_PATH, REGISTRY_STARTUP_PATH,};
+use crate::constants::*;
 
 // std
+use std::env;
+use std::ffi::OsStr;
 use std::fs;
 use std::io;
+use std::os::windows::ffi::OsStrExt;
 use std::process::Command;
+use std::ptr;
 
 // winreg
 use winreg::RegKey;
 use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_ALL_ACCESS};
+
+// winapi
+use winapi::um::winuser::{MessageBoxW, MB_ICONERROR, MB_OK};
 
 pub fn is_rebooted() -> bool {
     let hklm: RegKey = RegKey::predef(HKEY_LOCAL_MACHINE);
@@ -98,10 +105,13 @@ pub fn delete_registry_key() -> std::io::Result<()> {
 
 pub fn schedule_setup_task() -> std::io::Result<()> {
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let current_path = env::current_dir()?;
+    let setup_path = current_path.join(DATA_FOLDER_NAME).join(SETUP_EXE_NAME);
+    println!("setup path: {}", setup_path.to_str().unwrap());
 
     match hklm.open_subkey_with_flags(REGISTRY_RUNONCE_PATH, KEY_ALL_ACCESS) {
         Ok(reg_key) => {
-            match reg_key.set_value("testapp", &"C:\\Users\\win7\\Desktop\\setup\\test.exe") {
+            match reg_key.set_value("testapp", &setup_path.to_str().unwrap()) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(io::Error::new(

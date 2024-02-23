@@ -8,7 +8,7 @@ use xml_handler::{remove_files, write_xml_file};
 
 // internal: registry_handler
 mod registry_handler;
-use registry_handler::{delete_registry_key, export_registry_key, is_rebooted, schedule_setup_task, set_rebooted_key, message_box};
+use registry_handler::{delete_registry_key, export_registry_key, is_rebooted, schedule_setup_task, set_rebooted_key};
 
 // internal: utilities
 mod utilities;

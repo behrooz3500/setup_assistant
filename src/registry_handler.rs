@@ -3,13 +3,10 @@ use crate::constants::*;
 
 // std
 use std::env;
-use std::ffi::OsStr;
 use std::fs;
 use std::io;
-use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
 use std::process::Command;
-use std::ptr;
 
 // winreg
 use winreg::RegKey;

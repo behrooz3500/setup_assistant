@@ -20,7 +20,7 @@ static HKCU: RegKey = RegKey::predef(HKEY_CURRENT_USER);
 /// # Returns
 /// `bool` - whether the key is set or not
 pub fn _is_rebooted() -> bool {
-    match HKLM.open_subkey_with_flags(REBOOT_REGISTRY_PATH, KEY_ALL_ACCESS) {
+    match &HKLM.open_subkey_with_flags(REBOOT_REGISTRY_PATH, KEY_ALL_ACCESS) {
         Ok(reg_key) => match reg_key.get_value::<String, &str>("rebooted") {
             Ok(value) => value == "1",
             Err(_) => false,
@@ -39,7 +39,7 @@ pub fn _is_rebooted() -> bool {
 ///
 /// `std::io::Result<()>` - Whether the operation was successful or not
 pub fn set_rebooted_key(value: i8) -> std::io::Result<()> {
-    match HKLM.create_subkey_with_flags(REBOOT_REGISTRY_PATH, KEY_ALL_ACCESS) {
+    match &HKLM.create_subkey_with_flags(REBOOT_REGISTRY_PATH, KEY_ALL_ACCESS) {
         Ok((reg_key, _)) => {
             reg_key
                 .set_value("rebooted", &value.to_string())
@@ -69,7 +69,7 @@ pub fn export_registry_key() -> std::io::Result<()> {
     let local_path_header: &str = "HKEY_LOCAL_MACHINE";
     let user_path_header: &str = "HKEY_CURRENT_USER";
 
-    let registry_headers: [(&str, RegKey); 2] = [(local_path_header, HKLM), (user_path_header, HKCU)];
+    let registry_headers: [(&str, &RegKey); 2] = [(local_path_header, &HKLM), (user_path_header, &HKCU)];
 
     for (header, reg_key) in &registry_headers {
         let output_file: String = format!("{}.reg", header.to_lowercase());
@@ -108,8 +108,8 @@ pub fn export_registry_key() -> std::io::Result<()> {
 pub fn delete_registry_key() -> std::io::Result<()> {
     let local_path_header: &str = "HKEY_LOCAL_MACHINE";
     let user_path_header: &str = "HKEY_CURRENT_USER";
-    let registry_headers: [(&str, RegKey); 2] =
-        [(local_path_header, HKLM), (user_path_header, HKCU)];
+    let registry_headers: [(&str, &RegKey); 2] =
+        [(local_path_header, &HKLM), (user_path_header, &HKCU)];
 
     for (header, reg_key) in &registry_headers {
         match reg_key.open_subkey_with_flags(REGISTRY_STARTUP_PATH, KEY_ALL_ACCESS) {
@@ -141,7 +141,7 @@ pub fn schedule_setup_task() -> std::io::Result<()> {
     let setup_path = current_path.join(DATA_FOLDER_NAME).join(SETUP_EXE_NAME);
     let registry_restore_path = current_path.join(DATA_FOLDER_NAME).join(REGISTRY_RESTORE_EXECUTABLE);
 
-    match HKLM.open_subkey_with_flags(REGISTRY_RUNONCE_PATH, KEY_ALL_ACCESS) {
+    match &HKLM.open_subkey_with_flags(REGISTRY_RUNONCE_PATH, KEY_ALL_ACCESS) {
         Ok(reg_key) => {
             match reg_key.set_value("testapp", &setup_path.to_str().unwrap()) {
                 Ok(_) => {}

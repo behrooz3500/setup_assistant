@@ -1,3 +1,5 @@
+// This is used to force the app run with Administrator privileges
+
 fn main() {
     if cfg!(target_os = "windows") {
         let mut res = winres::WindowsResource::new();

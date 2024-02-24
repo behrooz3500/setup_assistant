@@ -22,22 +22,24 @@ use std::process::Command;
 
 
 fn main() {
+    // Initialize logging
     setup_logging().expect("Failed to initialize logger.");
     log::info!("================================================");
-    // local date time
     log::info!("Starting setup assistant.");
     
+    // Display a message box to show the execution of the app
     let message: &str = "شروع فرایند نصب نرم افزار معین";
     let title: &str = "معین";
     message_box(title, message, WindowType::Information);
 
+    // Create the reboot command
+    // todo: set the reboot time based on an external config file
     let mut shutdown_command = Command::new("shutdown");
     shutdown_command.args(["/r", "/t", "60"]);
 
+    // Create the script execution command
     let mut script_execution_command = Command::new("cmd");
     script_execution_command.arg("/C").arg(SCRIPT_PATH);
-
-    // let need_reboot: bool = !is_rebooted();
 
     log::info!("exporting registry key...");
     match export_registry_key() {

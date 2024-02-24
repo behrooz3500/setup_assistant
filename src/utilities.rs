@@ -12,6 +12,8 @@ use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
 
+
+/// Enum representing different window types
 pub enum WindowType {
     _Error,
     Information,
@@ -19,6 +21,13 @@ pub enum WindowType {
 }
 
 
+/// Display an OK message box with the specified window title, message, and type
+/// 
+/// # Arguments
+/// 
+/// * `window_title` - The title to be displayed in the message box
+/// * `window_message` - The message to be displayed in the message box
+/// * `window_type` - The type of the message box (Error, Information, or Warning)
 pub fn message_box(window_title: &str, window_message: &str, window_type: WindowType) {
     let wide_error_message: Vec<u16> = OsStr::new(window_message)
         .encode_wide()
@@ -43,6 +52,11 @@ pub fn message_box(window_title: &str, window_message: &str, window_type: Window
 }
 
 
+/// Set up file logger for the application using log and log4rs as the backend
+/// 
+/// # Returns
+/// 
+/// Result<(), Box<dyn Error>> - Result indicating success or an error
 pub fn setup_logging() -> Result<(), Box<dyn Error>> {
     let log_file = FileAppender::builder()
         .append(true)

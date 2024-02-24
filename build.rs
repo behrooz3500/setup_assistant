@@ -15,6 +15,7 @@ fn main() {
                 </trustInfo>
             </assembly>
         "#);
+        res.set_icon("external_resources\\icons\\moein.ico");
         res.compile().expect("Failed to compile resource");
     }
 }

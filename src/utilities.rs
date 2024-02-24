@@ -5,7 +5,13 @@ use std::error::Error;
 use std::os::windows::ffi::OsStrExt;
 
 // winapi
-use winapi::um::winuser::{MessageBoxW, MB_ICONINFORMATION, MB_ICONWARNING, MB_ICONERROR, MB_OK};
+use winapi::um::winuser::{
+    MessageBoxW,
+    MB_ICONINFORMATION,
+    MB_ICONWARNING,
+    MB_ICONERROR,
+    MB_OK,
+};
 
 // log
 use log::LevelFilter;

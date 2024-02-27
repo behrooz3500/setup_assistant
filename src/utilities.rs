@@ -12,6 +12,8 @@ use winapi::um::winuser::{
     MB_ICONERROR,
     MB_OK,
 };
+use winapi::um::wow64apiset::IsWow64Process;
+use winapi::um::processthreadsapi::GetCurrentProcess;
 
 // log
 use log::LevelFilter;
@@ -75,5 +77,15 @@ pub fn setup_logging() -> Result<(), Box<dyn Error>> {
 
     log4rs::init_config(config)?;
     Ok(())
+}
+
+
+
+pub fn is_64bit_os() -> bool {
+    let mut is_wow64: i32 = 0;
+    unsafe {
+        IsWow64Process(GetCurrentProcess(), &mut is_wow64);
+    }
+    is_wow64 != 0
 }
 

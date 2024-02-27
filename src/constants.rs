@@ -1,10 +1,15 @@
 pub const XML_PATH: &str = "locale.xml";
 pub const SCRIPT_PATH: &str = "locale.bat";
-pub const REBOOT_REGISTRY_PATH: &str = "SOFTWARE\\AAAHelperCo\\AAAHelperApp";
+pub const REBOOT_REGISTRY_PATH: &str = "SOFTWARE\\MoeinAssistant";
 pub const REGISTRY_STARTUP_PATH: &str = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
+pub const REGISTRY_STARTUP_PATH_WOW: &str = "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run";
 pub const REGISTRY_RUNONCE_PATH: &str = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce";
 pub const REGISTRY_RESTORE_EXECUTABLE: &str = "registry_restore.exe";
 pub const DATA_FOLDER_NAME: &str = "data";
+pub const X64_FILE_EXTENSION: &str = "x64.reg";
+pub const X32_FILE_EXTENSION: &str = "x32.reg";
+pub const REBOOTED_KEY_NAME: &str = "is_rebooted";
+pub const REBOOTED_KEY_VALUE: &str = "1";
 pub const SETUP_FILE_NAME: &str = "setup.bin";
 pub const SETUP_EXE_NAME: &str = "setup.exe";
 pub const XML_CONTENT: &str = r#"<?xml version="1.0"?>

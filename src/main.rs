@@ -9,7 +9,7 @@ use xml_handler::{remove_files, write_xml_file};
 // internal: registry_handler
 mod registry_handler;
 use registry_handler::{
-    delete_registry_key, export_registry_key, schedule_setup_task, set_rebooted_key,
+    export_and_delete_startup_registry_keys, schedule_setup_task, set_rebooted_key,
 };
 
 // internal: utilities
@@ -97,21 +97,12 @@ fn main() {
 
     if config.clean_startup_apps {
         log::info!("exporting registry key...");
-        match export_registry_key() {
+        match export_and_delete_startup_registry_keys() {
             Ok(_) => {
                 log::info!("registry keys are successfully exported!");
             }
             Err(err) => {
                 log::error!("failed to export registry keys: {}", err);
-            }
-        }
-        log::info!("deleting registry key...");
-        match delete_registry_key() {
-            Ok(_) => {
-                log::info!("registry keys are successfully deleted!");
-            }
-            Err(err) => {
-                log::error!("failed to delete registry keys: {}", err);
             }
         }
     } else {

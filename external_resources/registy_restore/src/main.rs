@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use log::LevelFilter;
+use log4rs::append::file;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
 
@@ -14,17 +15,21 @@ use log4rs::config::{Appender, Config, Root};
 fn main() {
     let current_dir: PathBuf = env::current_dir().expect("Failed to get current directory");
     setup_logging().expect("Failed to setup logging");
-
+    log::info!("Current directory: {}", current_dir.display());
     match fs::read_dir(current_dir) {
         Ok(entries) => {
+            log::info!("Found some files");
             for entry in entries {
                 if let Ok(entry) = entry {
                     let file_name = entry.path();
+                    log::info!("Found file: {}", file_name.display());
                     if  file_name.extension().is_some() && file_name.extension().unwrap() == "reg" {
-                        let is_64bit_view = file_name.to_str().unwrap().contains("64");
-                        println!("Found registry file: {}", file_name.display());
+                        let is_64bit_view: bool = file_name.to_str().unwrap().contains("64");
+                        log::info!("Found registry file:{}", file_name.display());
                         match restore_registry(entry.path(), is_64bit_view) {
-                            Ok(_) => (),
+                            Ok(_) => {
+                                log::info!("registry at {} restored successfully", file_name.display());
+                            },
                             Err(err) => log::info!("Error restoring registry: {}", err),
                         }
                     }
@@ -33,6 +38,7 @@ fn main() {
         }
         Err(err) => println!("Error reading directory: {}", err),
     }
+    std::io::stdin().read_line(&mut String::new()).unwrap();
 }
 
 fn restore_registry(file_path: PathBuf, is_64bit_view: bool) -> std::io::Result<()> {

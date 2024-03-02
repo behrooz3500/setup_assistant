@@ -11,8 +11,12 @@ use std::process::Command;
 
 // winreg
 use winreg::enums::{
-    HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_ALL_ACCESS, KEY_READ, KEY_WOW64_32KEY,
+    KEY_READ,
+    KEY_ALL_ACCESS,
+    KEY_WOW64_32KEY,
     KEY_WOW64_64KEY,
+    HKEY_CURRENT_USER,
+    HKEY_LOCAL_MACHINE,
 };
 use winreg::RegKey;
 
@@ -86,19 +90,12 @@ pub fn schedule_setup_task() -> std::io::Result<()> {
         .join(DATA_FOLDER_NAME)
         .join(REGISTRY_RESTORE_EXECUTABLE);
 
-    match &HKLM.open_subkey_with_flags(REGISTRY_RUNONCE_PATH, KEY_ALL_ACCESS | KEY_WOW64_64KEY) {
+    match &HKCU.open_subkey_with_flags(REGISTRY_RUNONCE_PATH, KEY_ALL_ACCESS | KEY_WOW64_64KEY) {
         Ok(reg_key) => {
-            match reg_key.set_value("MoeinAssistant", &setup_path.to_str().unwrap()) {
-                Ok(_) => {}
-                Err(_) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        "failed setting value for setup task schedule probably due to permissions",
-                    ))
-                }
-            }
             match reg_key.set_value("registry_restore", &registry_restore_path.to_str().unwrap()) {
-                Ok(_) => {}
+                Ok(_) => {
+                    log::info!("Registry restoration task scheduled successfully");
+                }
                 Err(_) => {
                     return Err(io::Error::new(
                         io::ErrorKind::Other,
@@ -106,6 +103,19 @@ pub fn schedule_setup_task() -> std::io::Result<()> {
                     ))
                 }
             }
+            
+            match reg_key.set_value("MoeinAssistant", &setup_path.to_str().unwrap()) {
+                Ok(_) => {
+                    log::info!("Setup task scheduled successfully");
+                }
+                Err(_) => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        "failed setting value for setup task schedule probably due to permissions",
+                    ))
+                }
+            }
+            
         }
         Err(_) => {
             return Err(io::Error::new(

@@ -3,20 +3,16 @@
 // +------------------+
 
 // std
+use std::env;
 use std::fs;
 use std::io;
-use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
 // winreg
 use winreg::enums::{
-    KEY_READ,
-    KEY_ALL_ACCESS,
-    KEY_WOW64_32KEY,
+    HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_ALL_ACCESS, KEY_READ, KEY_WOW64_32KEY,
     KEY_WOW64_64KEY,
-    HKEY_CURRENT_USER,
-    HKEY_LOCAL_MACHINE,
 };
 use winreg::RegKey;
 
@@ -84,14 +80,16 @@ pub fn set_rebooted_key(value: i8) -> std::io::Result<()> {
 ///
 /// `std::io::Result<()>` - Whether the operation was successful or not
 pub fn schedule_setup_task() -> std::io::Result<()> {
-    let current_path = env::current_dir()?;
-    let setup_path = current_path.join(DATA_FOLDER_NAME).join(SETUP_EXE_NAME);
-    let registry_restore_path = current_path
+    let current_path: PathBuf = env::current_dir()?;
+    let setup_path: PathBuf = current_path.join(DATA_FOLDER_NAME).join(SETUP_EXE_NAME);
+    let registry_restore_path: PathBuf = current_path
         .join(DATA_FOLDER_NAME)
         .join(REGISTRY_RESTORE_EXECUTABLE);
+    let registry_restore_path_duplicate: PathBuf = registry_restore_path.clone();
 
     match &HKCU.open_subkey_with_flags(REGISTRY_RUNONCE_PATH, KEY_ALL_ACCESS | KEY_WOW64_64KEY) {
         Ok(reg_key) => {
+            log::info!("Run-once registry key opened successfully");
             match reg_key.set_value("registry_restore", &registry_restore_path.to_str().unwrap()) {
                 Ok(_) => {
                     log::info!("Registry restoration task scheduled successfully");
@@ -103,7 +101,7 @@ pub fn schedule_setup_task() -> std::io::Result<()> {
                     ))
                 }
             }
-            
+
             match reg_key.set_value("MoeinAssistant", &setup_path.to_str().unwrap()) {
                 Ok(_) => {
                     log::info!("Setup task scheduled successfully");
@@ -115,13 +113,49 @@ pub fn schedule_setup_task() -> std::io::Result<()> {
                     ))
                 }
             }
-            
         }
         Err(_) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "failed to open run once key",
-            ))
+            log::error!("Failed to open run once key, trying to create one...");
+            match &HKCU
+                .create_subkey_with_flags(REGISTRY_RUNONCE_PATH, KEY_ALL_ACCESS | KEY_WOW64_64KEY)
+            {
+                Ok((reg_key, _)) => {
+                    log::info!("Run-once registry key created successfully");
+                    match reg_key.set_value(
+                        "registry_restore",
+                        &registry_restore_path_duplicate.to_str().unwrap(),
+                    ) {
+                        Ok(_) => {
+                            log::info!("Registry restoration task scheduled successfully in the created run-once key");
+                        }
+                        Err(_) => {
+                            log::info!("Failed to schedule registry restoration task in the created run-once key");
+                            return Err(io::Error::new(
+                                io::ErrorKind::Other,
+                                "failed setting value for registry restore task schedule probably due to permissions",
+                            ));
+                        }
+                    }
+                    match reg_key.set_value("MoeinAssistant", &setup_path.to_str().unwrap()) {
+                        Ok(_) => {
+                            log::info!("Setup task scheduled successfully");
+                        }
+                        Err(_) => {
+                            return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        "failed setting value for setup task schedule probably due to permissions",
+                        ))
+                        }
+                    }
+                }
+                Err(_) => {
+                    log::error!("Failed to create run once key");
+                    return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        "failed to create run once key",
+                    ));
+                }
+            }
         }
     }
     Ok(())
@@ -179,22 +213,31 @@ fn export_and_delete_registry_key(
                 let is_64bit_view = true;
                 let key_full_path: String = format!("{}\\{}", hive_name, REGISTRY_STARTUP_PATH);
                 let file_extension: &str = "X64.reg";
-                let backup_file_path: PathBuf = match create_backup_files(current_path, hive_name, file_extension) {
-                    Ok(path) => path,
-                    Err(err) => {
-                        log::error!("Error creating backup file: {}", err);
-                        return Ok(())
-                    }
-                };
-                if let Err(err) = export_registry_key_to_file(backup_file_path, key_full_path.as_str(), is_64bit_view) {
+                let backup_file_path: PathBuf =
+                    match create_backup_files(current_path, hive_name, file_extension) {
+                        Ok(path) => path,
+                        Err(err) => {
+                            log::error!("Error creating backup file: {}", err);
+                            return Ok(());
+                        }
+                    };
+                if let Err(err) = export_registry_key_to_file(
+                    backup_file_path,
+                    key_full_path.as_str(),
+                    is_64bit_view,
+                ) {
                     log::error!("failed to export registry key to file:{}", err);
                 }
                 if let Err(err) = delete_registry_key(&key_full_path, is_64bit_view) {
                     log::error!("Failed to delete registry key: {}", err);
                 }
             }
-            Err(err) => log::error!("Failed to open registry key with 64-bit access. Probably not existing{}{}: {}", hive_name, REGISTRY_STARTUP_PATH, err),
-            
+            Err(err) => log::error!(
+                "Failed to open registry key with 64-bit access. Probably not existing{}{}: {}",
+                hive_name,
+                REGISTRY_STARTUP_PATH,
+                err
+            ),
         }
         // Open registry key with 32-bit access
         match reg_key
@@ -204,21 +247,31 @@ fn export_and_delete_registry_key(
                 let is_64bit_view = false;
                 let key_full_path: String = format!("{}\\{}", hive_name, REGISTRY_STARTUP_PATH_WOW);
                 let file_extension: &str = "X32.reg";
-                let backup_file_path: PathBuf = match create_backup_files(current_path, hive_name, file_extension) {
-                    Ok(path) => path,
-                    Err(err) => {
-                        log::error!("Error creating backup file: {}", err);
-                        return Ok(())
-                    }
-                };
-                if let Err(err) = export_registry_key_to_file(backup_file_path, key_full_path.as_str(), is_64bit_view) {
+                let backup_file_path: PathBuf =
+                    match create_backup_files(current_path, hive_name, file_extension) {
+                        Ok(path) => path,
+                        Err(err) => {
+                            log::error!("Error creating backup file: {}", err);
+                            return Ok(());
+                        }
+                    };
+                if let Err(err) = export_registry_key_to_file(
+                    backup_file_path,
+                    key_full_path.as_str(),
+                    is_64bit_view,
+                ) {
                     log::error!("failed to export registry key to file:{}", err);
                 }
                 if let Err(err) = delete_registry_key(&key_full_path, is_64bit_view) {
                     log::error!("Failed to delete registry key: {}", err);
                 }
             }
-            Err(err) => log::error!("Failed to open registry key with 64-bit access. Probably not existing{}{}: {}", hive_name, REGISTRY_STARTUP_PATH, err),
+            Err(err) => log::error!(
+                "Failed to open registry key with 64-bit access. Probably not existing{}{}: {}",
+                hive_name,
+                REGISTRY_STARTUP_PATH,
+                err
+            ),
         };
     } else {
         log::info!("X86 os found.");
@@ -229,27 +282,31 @@ fn export_and_delete_registry_key(
             Ok(_) => {
                 let key_full_path: String = format!("{}\\{}", hive_name, REGISTRY_STARTUP_PATH);
                 let file_extension: &str = ".reg";
-                let backup_file_path: PathBuf = match create_backup_files(current_path, hive_name, file_extension) {
-                    Ok(path) => path,
-                    Err(err) => {
-                        log::error!("Error creating backup file: {}", err);
-                        return Ok(())
-                    }
-                };
-                if let Err(err) = export_registry_key_to_file(backup_file_path, key_full_path.as_str(), is_64bit) {
+                let backup_file_path: PathBuf =
+                    match create_backup_files(current_path, hive_name, file_extension) {
+                        Ok(path) => path,
+                        Err(err) => {
+                            log::error!("Error creating backup file: {}", err);
+                            return Ok(());
+                        }
+                    };
+                if let Err(err) =
+                    export_registry_key_to_file(backup_file_path, key_full_path.as_str(), is_64bit)
+                {
                     log::error!("failed to export registry key to file:{}", err);
                 }
                 if let Err(err) = delete_registry_key(&key_full_path, is_64bit) {
                     log::error!("Failed to delete registry key: {}", err);
                 }
-                
             }
-            Err(err) => log::error!("Failed to open registry key. Probably not existing: {}", err),
+            Err(err) => log::error!(
+                "Failed to open registry key. Probably not existing: {}",
+                err
+            ),
         }
     }
     Ok(())
 }
-
 
 /// Create backup file for registry keys
 ///
@@ -285,7 +342,6 @@ fn create_backup_files(
     Ok(backup_file_path)
 }
 
-
 /// Export startup registry keys to the created files
 ///
 /// # Arguments
@@ -297,7 +353,11 @@ fn create_backup_files(
 ///
 /// A `Result` indicating success (`Ok`) or an `std::io::Error` if an error occurs.
 ///
-fn export_registry_key_to_file(file_path: PathBuf, key_path: &str, is_64bit_view: bool) -> std::io::Result<()> {
+fn export_registry_key_to_file(
+    file_path: PathBuf,
+    key_path: &str,
+    is_64bit_view: bool,
+) -> std::io::Result<()> {
     let mut export_command = Command::new("reg");
     export_command.arg("export");
     export_command.arg(key_path);
@@ -308,24 +368,35 @@ fn export_registry_key_to_file(file_path: PathBuf, key_path: &str, is_64bit_view
     }
 
     match export_command.status() {
-            Ok(status) => {
-                if status.success() {
-                    log::info!("registry at {} exported successfully in {}", key_path, &file_path.display());
-                    Ok(())
-                } else {
-                    Err(std::io::Error::new(
+        Ok(status) => {
+            if status.success() {
+                log::info!(
+                    "registry at {} exported successfully in {}",
+                    key_path,
+                    &file_path.display()
+                );
+                Ok(())
+            } else {
+                Err(std::io::Error::new(
                     std::io::ErrorKind::Other,
-                    format!("Failed to export registry key {} to file {}", key_path, &file_path.display()),
+                    format!(
+                        "Failed to export registry key {} to file {}",
+                        key_path,
+                        &file_path.display()
+                    ),
                 ))
-                }
             }
-            Err(err) => {
-                log::error!("Exporting {} to {} completely failed.", key_path, &file_path.display());
-                Err(err)
-            },
         }
+        Err(err) => {
+            log::error!(
+                "Exporting {} to {} completely failed.",
+                key_path,
+                &file_path.display()
+            );
+            Err(err)
+        }
+    }
 }
-
 
 /// Delete registry keys
 ///
@@ -347,20 +418,20 @@ fn delete_registry_key(key_path: &str, is_64bit_view: bool) -> std::io::Result<(
     }
 
     match delete_command.status() {
-            Ok(status) => {
-                if status.success() {
-                    log::info!("registry at {} deleted successfully", key_path);
-                    Ok(())
-                } else {
-                    Err(std::io::Error::new(
+        Ok(status) => {
+            if status.success() {
+                log::info!("registry at {} deleted successfully", key_path);
+                Ok(())
+            } else {
+                Err(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     format!("Failed to delete registry key {}", key_path),
-                    ))
-                }
-            }
-            Err(err) => {
-                log::error!("Deleting {} completely failed.", key_path);
-                Err(err)
+                ))
             }
         }
+        Err(err) => {
+            log::error!("Deleting {} completely failed.", key_path);
+            Err(err)
+        }
+    }
 }

@@ -38,7 +38,6 @@ fn main() {
         }
         Err(err) => println!("Error reading directory: {}", err),
     }
-    std::io::stdin().read_line(&mut String::new()).unwrap();
 }
 
 fn restore_registry(file_path: PathBuf, is_64bit_view: bool) -> std::io::Result<()> {
